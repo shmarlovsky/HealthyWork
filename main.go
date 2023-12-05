@@ -11,6 +11,8 @@ import (
 	"github.com/spf13/viper"
 )
 
+// UI config
+
 func readIcon(iconPath string) []byte {
 	fullpath, err := filepath.Abs(iconPath)
 	if err != nil {
@@ -30,11 +32,7 @@ func initApp() *hw.App {
 	loadConfig()
 
 	app := hw.NewApp()
-
-	go func() {
-		app.Go()
-	}()
-
+	app.Start(true)
 	return app
 }
 
@@ -45,25 +43,41 @@ func onReady() {
 	systray.SetTitle(hw.APPNAME)
 	systray.SetTooltip(App.ShowStatus())
 
+	continueMenuItem := systray.AddMenuItem("Continue", "Continue with current timer")
+	continueMenuItem.Disable()
+	pauseMenuItem := systray.AddMenuItem("Pause", "Pause timer")
+
 	sitMenuItemText := fmt.Sprintf("Sit [%.0fmin]", hw.SecondsToMinutes(int(App.SitTime)))
-	sitMenuItem := systray.AddMenuItem(sitMenuItemText, "Sit")
+	sitMenuItem := systray.AddMenuItem(sitMenuItemText, "Sit (timer reset)")
 
 	standMenuItemText := fmt.Sprintf("Stand [%.0fmin]", hw.SecondsToMinutes(int(App.StandTime)))
-	standMenuItem := systray.AddMenuItem(standMenuItemText, "Stand")
+	standMenuItem := systray.AddMenuItem(standMenuItemText, "Stand (timer reset)")
 
 	systray.AddSeparator()
 	quitMenuItem := systray.AddMenuItem("Quit", "Quit")
 
 	for {
 		select {
-		case <-sitMenuItem.ClickedCh:
-			App.DoSit(false)
-		case <-standMenuItem.ClickedCh:
-			App.DoStand(false)
-		case <-quitMenuItem.ClickedCh:
-			systray.Quit()
 		case <-App.NotifyCh:
 			systray.SetTooltip(App.ShowStatus())
+		case <-continueMenuItem.ClickedCh:
+			App.Continue()
+			continueMenuItem.Disable()
+			pauseMenuItem.Enable()
+			systray.SetTooltip(App.ShowStatus())
+		case <-pauseMenuItem.ClickedCh:
+			App.Pause()
+			pauseMenuItem.Disable()
+			continueMenuItem.Enable()
+			systray.SetTooltip(App.ShowStatus())
+		case <-sitMenuItem.ClickedCh:
+			App.DoSit(false)
+			systray.SetTooltip(App.ShowStatus())
+		case <-standMenuItem.ClickedCh:
+			App.DoStand(false)
+			systray.SetTooltip(App.ShowStatus())
+		case <-quitMenuItem.ClickedCh:
+			systray.Quit()
 		}
 	}
 

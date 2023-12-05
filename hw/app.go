@@ -33,6 +33,7 @@ type App struct {
 	CurrentDuration int64
 	// channel to send events (exchange info with systray e.g.)
 	NotifyCh chan struct{}
+	Running  bool
 }
 
 func (a App) String() string {
@@ -50,12 +51,14 @@ func NewApp() *App {
 		CurrentState:    State(viper.GetString("startMode")),
 		CurrentDuration: 0,
 		NotifyCh:        make(chan struct{}),
+		Running:         false,
 	}
 }
 
 func (a *App) DoSit(byTimer bool) {
 	a.CurrentState = SITTING
 	a.CurrentDuration = 0
+	a.Continue()
 	log.Printf("Go to %v", a.CurrentState)
 	a.notify()
 	if byTimer {
@@ -66,6 +69,7 @@ func (a *App) DoSit(byTimer bool) {
 func (a *App) DoStand(byTimer bool) {
 	a.CurrentState = STANDING
 	a.CurrentDuration = 0
+	a.Continue()
 	log.Printf("Go to %v", a.CurrentState)
 	a.notify()
 	if byTimer {
@@ -84,11 +88,17 @@ func (a *App) SwitchState() {
 }
 
 func (a *App) ShowStatus() string {
+	s := fmt.Sprintf("%ving", a.CurrentState)
+	s = strings.ToUpper(s[:1]) + s[1:]
+	if !a.Running {
+		s += " (paused)"
+	}
+
 	minutes := SecondsToMinutes(int(a.CurrentDuration))
-	s := string(a.CurrentState)
 	duration := SecondsToMinutes(int(a.currentLimit()))
 	percent := minutes / duration * 100
-	return fmt.Sprintf("%ving: %.0f of %.0f minutes [%.0f%%]", strings.ToUpper(s[:1])+s[1:], minutes, duration, percent)
+
+	return fmt.Sprintf("%v: %.0f of %.0f minutes [%.0f%%]", s, minutes, duration, percent)
 }
 
 func (a *App) Reload() {
@@ -116,19 +126,47 @@ func (a *App) currentLimit() int64 {
 	}
 }
 
-func (a *App) Go() {
-	for {
-		if a.CurrentDuration >= a.currentLimit() {
-			a.SwitchState()
-		}
-		// send notify event every N of seconds
-		if a.CurrentDuration%UPDATE_TOOLTIP_INTERVAL == 0 {
-			a.notify()
-		}
-		// log.Printf("Working.. %v", a)
-		time.Sleep(time.Second)
-		a.CurrentDuration += 1
+func (a *App) Start(reset bool) {
+	if reset {
+		a.CurrentDuration = 0
+		a.CurrentState = a.StartState
 	}
+
+	a.Running = true
+
+	go func() {
+		for {
+			if !a.Running {
+				break
+			}
+			if a.CurrentDuration >= a.currentLimit() {
+				a.SwitchState()
+			}
+			// send notify event every N of seconds
+			if a.CurrentDuration%UPDATE_TOOLTIP_INTERVAL == 0 {
+				a.notify()
+			}
+
+			log.Printf("Working.. %v", a)
+			time.Sleep(time.Second)
+			a.CurrentDuration += 1
+		}
+	}()
+
+}
+
+func (a *App) Continue() {
+	if !a.Running {
+		a.Start(false)
+	}
+	log.Printf("Continue: %v", a)
+	a.notify()
+}
+
+func (a *App) Pause() {
+	a.Running = false
+	log.Printf("Pause: %v", a)
+	a.notify()
 }
 
 func showToast(title string) {
