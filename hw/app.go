@@ -14,7 +14,7 @@ import (
 const (
 	APPNAME                 = "HealthyWork"
 	STAND_NOTIFY_TEXT       = "Time to stand!"
-	SIT_NOTIFY_TEXT         = "Ok, sit down"
+	SIT_NOTIFY_TEXT         = "Time to sit"
 	UPDATE_TOOLTIP_INTERVAL = 5
 )
 
@@ -62,7 +62,7 @@ func (a *App) DoSit(byTimer bool) {
 	log.Printf("Go to %v", a.CurrentState)
 	a.notify()
 	if byTimer {
-		showToast(SIT_NOTIFY_TEXT)
+		a.showToast(SIT_NOTIFY_TEXT)
 	}
 }
 
@@ -73,7 +73,7 @@ func (a *App) DoStand(byTimer bool) {
 	log.Printf("Go to %v", a.CurrentState)
 	a.notify()
 	if byTimer {
-		showToast(STAND_NOTIFY_TEXT)
+		a.showToast(STAND_NOTIFY_TEXT)
 	}
 }
 
@@ -169,13 +169,14 @@ func (a *App) Pause() {
 	a.notify()
 }
 
-func showToast(title string) {
+func (a *App) showToast(title string) {
 	notification := toast.Notification{
 		AppID: APPNAME,
 		Title: title,
 	}
 
-	iconFullPath, err := filepath.Abs("assets/icon2.ico")
+	icon := GetIcon(a.CurrentState, a.Running)
+	iconFullPath, err := filepath.Abs(icon)
 	if err == nil {
 		notification.Icon = iconFullPath
 	}
@@ -183,6 +184,20 @@ func showToast(title string) {
 	err = notification.Push()
 	if err != nil {
 		log.Println(err)
+	}
+}
+
+func GetIcon(state State, running bool) string {
+	if state == STANDING && running {
+		return "assets/stand-green.ico"
+	} else if state == STANDING && !running {
+		return "assets/stand-grey.ico"
+	} else if state == SITTING && running {
+		return "assets/sit-green.ico"
+	} else if state == SITTING && !running {
+		return "assets/sit-grey.ico"
+	} else {
+		return "assets/icon2.ico"
 	}
 }
 

@@ -11,7 +11,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-// UI config
+// TODO: UI config
 
 func readIcon(iconPath string) []byte {
 	fullpath, err := filepath.Abs(iconPath)
@@ -39,7 +39,7 @@ func initApp() *hw.App {
 var App = initApp()
 
 func onReady() {
-	systray.SetIcon(readIcon("assets/icon2.ico"))
+	systray.SetIcon(readIcon(hw.GetIcon(App.CurrentState, App.Running)))
 	systray.SetTitle(hw.APPNAME)
 	systray.SetTooltip(App.ShowStatus())
 
@@ -65,17 +65,25 @@ func onReady() {
 			continueMenuItem.Disable()
 			pauseMenuItem.Enable()
 			systray.SetTooltip(App.ShowStatus())
+			systray.SetIcon(readIcon(hw.GetIcon(App.CurrentState, App.Running)))
 		case <-pauseMenuItem.ClickedCh:
 			App.Pause()
 			pauseMenuItem.Disable()
 			continueMenuItem.Enable()
 			systray.SetTooltip(App.ShowStatus())
+			systray.SetIcon(readIcon(hw.GetIcon(App.CurrentState, App.Running)))
 		case <-sitMenuItem.ClickedCh:
 			App.DoSit(false)
+			continueMenuItem.Disable()
+			pauseMenuItem.Enable()
 			systray.SetTooltip(App.ShowStatus())
+			systray.SetIcon(readIcon(hw.GetIcon(App.CurrentState, App.Running)))
 		case <-standMenuItem.ClickedCh:
 			App.DoStand(false)
+			continueMenuItem.Disable()
+			pauseMenuItem.Enable()
 			systray.SetTooltip(App.ShowStatus())
+			systray.SetIcon(readIcon(hw.GetIcon(App.CurrentState, App.Running)))
 		case <-quitMenuItem.ClickedCh:
 			systray.Quit()
 		}
