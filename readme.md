@@ -1,0 +1,1 @@
+Small app which sits in tray and send reminders to work sitting or standing (if you have adjustable desk).
