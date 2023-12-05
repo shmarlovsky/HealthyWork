@@ -1,0 +1,5 @@
+# time in minutes
+sitTime: 60
+standTime: 30
+# "sit" or "stand"
+startMode: "sit"
