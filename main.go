@@ -32,6 +32,7 @@ func initApp() *hw.App {
 	loadConfig()
 
 	app := hw.NewApp()
+	app.SitTime = 5
 	app.Start(true)
 	return app
 }
@@ -60,6 +61,7 @@ func onReady() {
 		select {
 		case <-App.NotifyCh:
 			systray.SetTooltip(App.ShowStatus())
+			systray.SetIcon(readIcon(hw.GetIcon(App.CurrentState, App.Running)))
 		case <-continueMenuItem.ClickedCh:
 			App.Continue()
 			continueMenuItem.Disable()
